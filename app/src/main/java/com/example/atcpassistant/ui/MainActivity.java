@@ -139,6 +139,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         nativeIpTvCard.setText(getLocalIpAddress()); // 先填本地，这是默认的，获取本地IP 地址显示
         clearReceiveTv = (TextView)findViewById(R.id.clear_receive_tv);
         mPeriod_Et = (EditText)findViewById(R.id.period_et);
+
+        mMode = 1;
+        mToolbar.setTitle("TCP Client");
+        toggleButton.setTextOff("链接网络");
+        toggleButton.setTextOn("断开网络");
+        toggleButton.setChecked(false);
+        mIpEt.setEnabled(true);
+        mRemotePortEt.setEnabled(true);
+        mNativePortEt.setEnabled(false);
     }
 
     private void initListeners(){
@@ -605,6 +614,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mAnimator.start();
 //                receiveTvCard.setText(""+countReceive);
 //                sendTvCard.setText(""+countSend);
+                if(mMode == 1)
+                    mToolbar.setTitle("TCP Client");
                 break;
             case R.id.confirm_card:
                 if (isVisible){
