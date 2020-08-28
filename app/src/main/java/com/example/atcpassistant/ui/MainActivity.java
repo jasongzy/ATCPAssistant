@@ -41,8 +41,12 @@ import com.example.atcpassistant.view.MainView;
 import com.example.atcpassistant.view.SendView;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -209,23 +213,44 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
                 if (isChecked){
+                    if (!mIpEt.getText().toString().trim().equals("") && !isIP(mIpEt.getText().toString().trim()) && (mMode == 1 || mMode == 3)) {
+                        ToastUtil.showToast(MainActivity.this, "IP地址不合法");
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String new_ip = GetInetAddress(mIpEt.getText().toString().trim());
+                                if (!new_ip.equals("")) {
+                                    mIpEt.setText(new_ip);
+                                    MainActivity.this.runOnUiThread(new Runnable() {
+                                        public void run() {
+                                            ToastUtil.showToast(MainActivity.this, "已自动解析域名为IP，请重新链接");
+                                        }
+                                    });
+                                }
+                            }
+                        }).start();
+                        toggleButton.setChecked(false);
+                        return;
+                    }
                     switch (mMode){
                         case 0:
                             toggleButton.setChecked(false);
                             ToastUtil.showToast(MainActivity.this, "请先选择模式");
                             break;
                         case 1: // TCP Client
-                            tcpClientRb.setEnabled(true);
-                            tcpServerRb.setEnabled(false);
-                            udpRb.setEnabled(false);
                             if (TextUtils.isEmpty(mIpEt.getText().toString().trim())) {
+                                toggleButton.setChecked(false);
                                 ToastUtil.showToast(MainActivity.this, "请填写远程主机地址");
                                 return;
                             }
                             if (TextUtils.isEmpty(mRemotePortEt.getText().toString().trim())){
+                                toggleButton.setChecked(false);
                                 ToastUtil.showToast(MainActivity.this, "请填写远程主机端口");
                                 return;
                             }
+                            tcpClientRb.setEnabled(true);
+                            tcpServerRb.setEnabled(false);
+                            udpRb.setEnabled(false);
                             if (!mMainPresenter.isThreadNull(mMode)){
                                 toggleButton.setChecked(true);
                                 return; // 不是null 说明已创建是哪个键链接线程，所以结束
@@ -297,13 +322,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             break;
 
                         case 2: // TCP Server
-                            tcpClientRb.setEnabled(false);
-                            tcpServerRb.setEnabled(true);
-                            udpRb.setEnabled(false);
                             if (TextUtils.isEmpty(mNativePortEt.getText().toString().trim())) {
+                                toggleButton.setChecked(false);
                                 ToastUtil.showToast(MainActivity.this, "请填写本地监听端口");
                                 return;
                             }
+                            tcpClientRb.setEnabled(false);
+                            tcpServerRb.setEnabled(true);
+                            udpRb.setEnabled(false);
                             if (!mMainPresenter.isThreadNull(mMode)){
                                 toggleButton.setChecked(true);
                                 return; // 不是null 说明已创建，所以不用再创建，所以结束
@@ -361,21 +387,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             break;
 
                         case 3: // UDP
-                            tcpClientRb.setEnabled(false);
-                            tcpServerRb.setEnabled(false);
-                            udpRb.setEnabled(true);
                             if (TextUtils.isEmpty(mIpEt.getText().toString().trim())){
+                                toggleButton.setChecked(false);
                                 ToastUtil.showToast(MainActivity.this, "请填写远程主机地址");
                                 return;
                             }
                             if (TextUtils.isEmpty(mRemotePortEt.getText().toString().trim())){
+                                toggleButton.setChecked(false);
                                 ToastUtil.showToast(MainActivity.this, "请填写远程主机端口");
                                 return;
                             }
                             if (TextUtils.isEmpty(mNativePortEt.getText().toString().trim())){
+                                toggleButton.setChecked(false);
                                 ToastUtil.showToast(MainActivity.this, "请填写本地监听端口");
                                 return;
                             }
+                            tcpClientRb.setEnabled(false);
+                            tcpServerRb.setEnabled(false);
+                            udpRb.setEnabled(true);
                             if (!mMainPresenter.isThreadNull(mMode)){
                                 toggleButton.setChecked(true);
                                 return; // 不是null 说明已创建，所以不用再创建，所以结束
@@ -834,5 +863,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (mTimer != null)
             mTimer.cancel();
         mMainPresenter.onDestroy();
+    }
+
+
+    /**
+     * 域名解析ip地址
+     */
+    public static String GetInetAddress(String host) {
+        String IPAddress = "";
+        InetAddress ReturnStr1 = null;
+        try {
+            ReturnStr1 = java.net.InetAddress.getByName(host);
+            IPAddress = ReturnStr1.getHostAddress();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            return IPAddress;
+        }
+        return IPAddress;
+    }
+
+    /**
+     * 判断字符串是否为合法ip
+     */
+    boolean isIP(String str) {
+        // 1、首先检查字符串的长度 最短应该是0.0.0.0 7位 最长 000.000.000.000 15位
+        if (str.length() < 7 || str.length() > 15) return false;
+        // 2、按.符号进行拆分，拆分结果应该是4段，"."、"|"、"^"等特殊字符必须用 \ 来进行转义
+        // 而在java字符串中，\ 也是个已经被使用的特殊符号，也需要使用 \ 来转义
+        String[] arr = str.split("\\.");
+        if (arr.length != 4) return false;
+        // 3、检查每个字符串是不是都是数字,ip地址每一段都是0-255的范围
+        for (int i = 0; i < 4; i++) {
+            if (!isNUM(arr[i]) || arr[i].length() == 0 || Integer.parseInt(arr[i]) > 255 || Integer.parseInt(arr[i]) < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 判断一个字符串是否是数字
+     */
+    boolean isNUM(String str) {
+        Pattern p = Pattern.compile("[0-9]*");
+        Matcher m = p.matcher(str);
+        return m.matches();
     }
 }
