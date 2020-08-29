@@ -213,13 +213,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
                 if (isChecked){
-                    if (!mIpEt.getText().toString().trim().equals("") && !isIP(mIpEt.getText().toString().trim()) && (mMode == 1 || mMode == 3)) {
+                    if (!TextUtils.isEmpty(mIpEt.getText().toString().trim()) && !isIP(mIpEt.getText().toString().trim()) && (mMode == 1 || mMode == 3)) {
                         ToastUtil.showToast(MainActivity.this, "IP地址不合法");
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
                                 String new_ip = GetInetAddress(mIpEt.getText().toString().trim());
-                                if (!new_ip.equals("")) {
+                                if (!TextUtils.isEmpty(new_ip)) {
                                     mIpEt.setText(new_ip);
                                     MainActivity.this.runOnUiThread(new Runnable() {
                                         public void run() {
@@ -229,6 +229,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 }
                             }
                         }).start();
+                        toggleButton.setChecked(false);
+                        return;
+                    }
+                    if (!TextUtils.isEmpty(mRemotePortEt.getText().toString().trim()) && !CheckPort(mRemotePortEt.getText().toString().trim()) && (mMode == 1 || mMode == 3)) {
+                        ToastUtil.showToast(MainActivity.this, "远程端口不合法");
+                        toggleButton.setChecked(false);
+                        return;
+                    }
+                    if (!TextUtils.isEmpty(mNativePortEt.getText().toString().trim()) && !CheckPort(mNativePortEt.getText().toString().trim()) && (mMode == 2 || mMode == 3)) {
+                        ToastUtil.showToast(MainActivity.this, "本地端口不合法");
                         toggleButton.setChecked(false);
                         return;
                     }
@@ -885,7 +895,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * 判断字符串是否为合法ip
      */
-    boolean isIP(String str) {
+    public static boolean isIP(String str) {
         // 1、首先检查字符串的长度 最短应该是0.0.0.0 7位 最长 000.000.000.000 15位
         if (str.length() < 7 || str.length() > 15) return false;
         // 2、按.符号进行拆分，拆分结果应该是4段，"."、"|"、"^"等特殊字符必须用 \ 来进行转义
@@ -904,9 +914,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * 判断一个字符串是否是数字
      */
-    boolean isNUM(String str) {
+    public static boolean isNUM(String str) {
         Pattern p = Pattern.compile("[0-9]*");
         Matcher m = p.matcher(str);
         return m.matches();
     }
+
+    /**
+     * 判断字符串是否为合法端口
+     */
+    public static boolean CheckPort(String str)
+    {
+        Pattern p = Pattern.compile("^[1-9]$|(^[1-9][0-9]$)|(^[1-9][0-9][0-9]$)|(^[1-9][0-9][0-9][0-9]$)|(^[1-6][0-5][0-5][0-3][0-5]$)");
+        Matcher m = p.matcher(str);
+        return m.matches();
+    }
+
 }
