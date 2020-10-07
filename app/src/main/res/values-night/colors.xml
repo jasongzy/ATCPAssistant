@@ -4,10 +4,10 @@
     <!--<color name="colorPrimaryDark">#3367D6</color>-->
     <!--<color name="colorAccent">#FFC400</color>-->
 
-	<color name="colorPrimary">#4CAF50</color>
-    <color name="colorPrimaryDark">#388E3C</color>
-    <color name="colorAccent">#FFC107</color>
+	<color name="colorPrimary">#000000</color>
+    <color name="colorPrimaryDark">#000000</color>
+    <color name="colorAccent">#80CBC4</color>
 
 	<color name="gray_light">#CCCCCC</color>
-	<color name="app_bg">#FFFFFF</color>
+	<color name="app_bg">#000000</color>
 </resources>
